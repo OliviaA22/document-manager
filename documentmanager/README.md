@@ -1,6 +1,4 @@
-# Olivias Einarbeitung
-
-## Project Name: Document Manager
+# Project Name: Document Manager
 
 ## Project status: 90% Completed
 
