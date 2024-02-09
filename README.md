@@ -2,6 +2,8 @@
 
 ## Project status: 90% Completed
 
+![Module-logo](https://github.com/OliviaA22/document-manager/assets/94966149/326f5ed8-1624-4b59-b2ba-5a1daebd5b9d)
+
 ### Completed Tasks
 
 - [x] View for both users and admin has been created.
