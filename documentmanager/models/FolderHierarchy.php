@@ -11,7 +11,7 @@ use yii\db\ActiveQuery;
  *
  * @property int|null $id
  * @property int|null $fk_folder
- * @property string| $name
+ * @property string $name
  * @property int|null $sub_level
  */
 class FolderHierarchy extends ActiveRecordExternal

@@ -5,7 +5,8 @@ namespace humhub\modules\documentmanager\models\search;
 use yii\base\Model;
 use yii\data\ActiveDataProvider;
 use humhub\modules\documentmanager\models\Document;
-
+use humhub\modules\documentmanager\models\DocumentRevision;
+use yii\data\ArrayDataProvider;
 
 /**
  * DocumentSearch represents the model behind the search form of `humhub\modules\documentmanager\models\Document`.
@@ -20,10 +21,17 @@ class DocumentSearch extends Document
     public function rules()
     {
         return [
-            [['search'], 'safe'],
-            [['fk_affiliation'], 'integer'],
+
+            [['document_content', 'name', 'tags', 'search', 'version', 'created_date', 'fk_affiliation'], 'safe'],
         ];
     }
+    // public function rules()
+    // {
+    //     return [
+    //         [['search'], 'safe'],
+    //         [['fk_affiliation'], 'integer'],
+    //     ];
+    // }
 
     /**
      * {@inheritdoc}
@@ -43,31 +51,29 @@ class DocumentSearch extends Document
      */
     public function search($params)
     {
-        $query = Document::find();
-        // $dataProvider = new ActiveDataProvider([
-        //     'query' => $query,
-        // ]);
+        $query = DocumentRevision::find();
+
+        $dataProvider = new ActiveDataProvider([
+            'query' => $query,
+        ]);
 
         $this->load($params);
 
-        // if (!$this->validate()) {
-        //     // uncomment the following line if you do not want to return any records when validation fails
-        //     // $query->where('0=1');
-        //     return $dataProvider;
-        // }
+        if (!$this->validate()) {
+            // uncomment the following line if you do not want to return any records when validation fails
+            // $query->where('0=1');
+            return $dataProvider;
+        }
 
+        $revisions = Document::getVisibleRevisions();
 
-        $query->andFilterWhere(['or', ['like', 'name', $this->search], ['like', 'tags', $this->search]]);
-        
-        $query->andFilterWhere(['fk_affiliation' => $this->fk_affiliation]);
+        $dataProvider = new ArrayDataProvider([
+        'allModels' => $revisions,
+        'pagination' => false,
+        ]);
 
-        // grid filtering conditions
-
-        /*
-        $query->andFilterWhere(['like', 'document.name', $this->name])
-            ->andFilterWhere(['like', 'tags', $this->tags]);
-            */
-        return $query;
+        return $dataProvider;
     }
+
 }
 

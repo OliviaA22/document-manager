@@ -1,19 +1,15 @@
 <?php
 
-
 use humhub\modules\documentmanager\helpers\DocumentManagerHelper;
 use yii\grid\ActionColumn;
 use yii\helpers\Html;
 use yii\helpers\Url;
-use yii\widgets\ActiveForm;
 use humhub\modules\documentmanager\models\DocumentRevision;
-use humhub\modules\documentmanager\models\Document;
-use humhub\modules\documentmanager\models\Revision;
 use humhub\modules\documentmanager\models\Folder;
 
 use yii\grid\GridView;
 use humhub\modules\documentmanager\assets\DocumentManagerAsset;
-use yii\widgets\Breadcrumbs;
+use humhub\modules\documentmanager\models\Document;
 
 DocumentManagerAsset::register($this);
 
@@ -36,7 +32,6 @@ $path = Folder::setBreadcrumbsPath(true)
 
                 [
                     'attribute' => 'name',
-                    'contentOptions' => ['class' => 'truncate'],
                     'format' => 'raw',
                     'value' => function ($model) {
                         $name = '';
@@ -116,7 +111,6 @@ $path = Folder::setBreadcrumbsPath(true)
                     'template' => '{create} {update} {delete}',
                     'buttons' => [
                         'create' => function ($url, $model, $key) {
-
                             if ($model instanceof DocumentRevision) {
                                 return Html::a(
                                     '<span><i class="fa fa-plus-square-o" aria-hidden="true"></i></span>',
@@ -130,7 +124,27 @@ $path = Folder::setBreadcrumbsPath(true)
                             return $model instanceof DocumentRevision;
                         },
                         'delete' => function ($model, $key, $index) {
-                            return true;
+                            if ($model instanceof Folder) {
+                                $folder_document = Document::find()->where(['fk_folder' => $model->id])->all();
+                                $folder_subfolders = Folder::find()->where(['fk_folder' => $model->id])->all();
+
+                                foreach ($folder_document as $document) {
+
+                                    $doc_revision = $document->checkRevision();
+                                    $folder_content = array_merge($doc_revision, $folder_subfolders);
+                                    if (empty($folder_content)) {
+                                        return true;
+                                    }else {
+                                        return false;
+                                    }
+                                }
+
+                                return '-';
+                            } else {
+                                return true;
+                            
+                            }
+                            
                         },
                     ],
                     'urlCreator' => function ($action, $model, $key, $index, $column) {

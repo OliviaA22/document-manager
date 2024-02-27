@@ -20,8 +20,6 @@ class Module extends ContentContainerModule
     {
         parent::init();
 
-        //require(__DIR__ . '/helpers/documentmanagerhelper.php');
-
     }
 
 

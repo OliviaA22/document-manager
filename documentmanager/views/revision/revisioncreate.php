@@ -11,7 +11,7 @@ $this->params['breadcrumbs'][] = $this->title;
 ?>
 <div class="revision-create">
 
-    <h1><?= Html::encode($this->title) ?></h1>
+    <h1 style="padding-left: 12px;"><?= Html::encode($this->title) ?></h1>
 
     <?= $this->render('_revisionform', [
         'model' => $model,

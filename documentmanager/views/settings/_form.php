@@ -3,7 +3,6 @@
 /* @var $model humhub\modules\documentmanager\models\SettingsForm */
 use humhub\widgets\Button;
 use yii\bootstrap\ActiveForm;
-use yii\helpers\Html;
 ?>
 <div class="panel panel-default">
     <div class="panel-heading">

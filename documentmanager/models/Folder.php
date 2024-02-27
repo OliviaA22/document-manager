@@ -63,6 +63,12 @@ class Folder extends ActiveRecordExternal
     }
 
 
+    /**
+     * Creates a new folder instance using the FolderHierarchy model.
+     * 
+     * @param FolderHierarchy $hierarchyModel
+     * @return self
+     */
     public static function createFromHierarchy(FolderHierarchy $hierarchyModel)
     {
         $folder = new self();
@@ -71,16 +77,15 @@ class Folder extends ActiveRecordExternal
         $folder->created_date = date('Y-m-d H:i:s');
         $folder->root_folder = 0;
 
-        // if (!empty($folder->fk_folder)) {
-        //     $folder->sub_level = Folder::findOne($folder->fk_folder)->sub_level;
-        // } else {
-        //     $folder->sub_level = $folder->id;
-        // }
-
         return $folder;
     }
 
-
+    /**
+     * Generates a breadcrumb trail for a given folder.
+     * 
+     * @param int $fk_folder
+     * @return array 
+     */
     public static function getBreadcrumbs($fk_folder)
     {
 
@@ -97,9 +102,15 @@ class Folder extends ActiveRecordExternal
             $folderValues[] = $currentFolder;
         }
 
-        return  $folderValues;
+        return $folderValues;
     }
 
+    /**
+     * Initializes a Breadcrumbs object with the breadcrumb trail for the current folder.
+     * 
+     * @param bool $is_backend
+     * @return Breadcrumbs
+     */
     public static function setBreadcrumbsPath($is_backend)
     {
         $path = new Breadcrumbs();
@@ -107,7 +118,8 @@ class Folder extends ActiveRecordExternal
         $path->homeLink = [
             'label' => Yii::t('DocumentmanagerModule.app', 'Document Manager'),
             'url' => [
-                $crumbsurl, 'cguid' => DocumentManagerHelper::getCGuid()
+                $crumbsurl,
+                'cguid' => DocumentManagerHelper::getCGuid()
             ]
         ];
         $fk_folder = Yii::$app->getRequest()->getQueryParam('fk_folder');
@@ -123,7 +135,9 @@ class Folder extends ActiveRecordExternal
                 $path->links[] = [
                     'label' => $label,
                     'url' => [
-                        $crumbsurl, 'cguid' => DocumentManagerHelper::getCGuid(), 'fk_folder' => $folder->id
+                        $crumbsurl,
+                        'cguid' => DocumentManagerHelper::getCGuid(),
+                        'fk_folder' => $folder->id
                     ]
                 ];
             }
@@ -133,11 +147,18 @@ class Folder extends ActiveRecordExternal
         return $path;
     }
 
-    public static function getContentSettings($is_backend) {
+    /**
+     * Returns the URL for the content container settings (backend or frontend).
+     * 
+     * @param bool $is_backend
+     * @return string The URL
+     */
+    public static function getContentSettings($is_backend)
+    {
 
         if ($is_backend) {
             $crumbsurl = '/documentmanager/backend/get-contents-admin';
-        }else{
+        } else {
             $crumbsurl = '/documentmanager/frontend/get-contents';
         }
 

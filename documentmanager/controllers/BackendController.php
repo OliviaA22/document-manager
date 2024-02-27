@@ -3,15 +3,14 @@
 namespace humhub\modules\documentmanager\controllers;
 
 use humhub\modules\content\components\ContentContainerController;
-use humhub\modules\content\models\ContentContainerModuleState;
-use humhub\modules\documentmanager\assets\DocumentManagerAsset;
-
+use humhub\modules\documentmanager\EventsAdmin;
 use humhub\modules\documentmanager\helpers\DocumentManagerHelper;
 use humhub\modules\documentmanager\models\Affiliation;
 use humhub\modules\documentmanager\models\Document;
 use humhub\modules\documentmanager\models\DocumentRevision;
 use humhub\modules\documentmanager\models\Folder;
 use humhub\modules\documentmanager\models\AffiliationDocument;
+use humhub\modules\documentmanager\models\CronSchedule;
 use humhub\modules\documentmanager\models\FolderHierarchy;
 use humhub\modules\documentmanager\models\Revision;
 
@@ -19,28 +18,25 @@ use humhub\modules\documentmanager\models\Revision;
 use humhub\modules\documentmanager\models\search\DocumentRevisionSearch;
 use humhub\modules\documentmanager\models\SettingsForm;
 use humhub\modules\documentmanager\notifications\DocumentNotification;
-use humhub\modules\notification\models\Notification;
 use humhub\modules\space\models\Membership;
-use humhub\modules\space\models\Space;
-use humhub\modules\user\models\User;
+
 use yii\console\Response;
 use yii\db\StaleObjectException;
 use yii\filters\AccessControl;
-use yii\web\ForbiddenHttpException;
+
 use yii\web\NotFoundHttpException;
 
 use yii\data\ArrayDataProvider;
 use Yii;
+use yii\db\Exception;
 use yii\filters\VerbFilter;
 use yii\helpers\ArrayHelper;
 use yii\web\UploadedFile;
-use yii\helpers\Url;
-use yii\widgets\Breadcrumbs;
 
 /**
- * Description of a Base Controller for the documentmanager module.
+ * BackendController implements the CRUD actions for the admin interface.
  */
-class BackendController extends \humhub\modules\content\components\ContentContainerController
+class BackendController extends ContentContainerController
 {
 
     /**
@@ -99,7 +95,7 @@ class BackendController extends \humhub\modules\content\components\ContentContai
     }
 
     /**
-     * Allows user to interact with folders.
+     * Allows admin users to interact with and manage documents.
      *
      * @return string
      */
@@ -122,11 +118,6 @@ class BackendController extends \humhub\modules\content\components\ContentContai
     }
 
 
-    /**
-     * Displays the contents of the requested folder.
-     * 
-     * @return string
-     */
     /**
      * Displays the contents of the requested folder.
      * 
@@ -155,15 +146,35 @@ class BackendController extends \humhub\modules\content\components\ContentContai
         ]);
     }
 
+    /**
+     * Performs a file search.
+     * 
+     * @return string
+     */
+    public function actionFileSearch()
+    {
+
+        $this->layout = 'main';
+        $this->requireContainer = false;
+
+        $searchModel = new DocumentRevisionSearch();
+        $dataProvider = $searchModel->search($this->request->queryParams);
+
+
+        return $this->render('_foldercontentsadmin', [
+            'searchModel' => $searchModel,
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+
 
     /**
-     * Creates a new Revision model.
-     * If creation is successful, the browser will be redirected to the 'view' page.
+     * Creates a new revision for an existing document.
+     * If creation is successful, the browser will be redirected to the 'get-contents-admin' page.
      * @param $fk_document
      * @return string|\yii\web\Response
      * @throws NotFoundHttpException
      */
-
     public function actionCreate($fk_document)
     {
 
@@ -180,22 +191,34 @@ class BackendController extends \humhub\modules\content\components\ContentContai
 
         if ($this->request->isPost) {
             if ($model->load($this->request->post())) {
-                $model->document_content = UploadedFile::getInstance($model, 'document_content'); // Gets an instance of the uploaded file
 
-                if ($model->document_content) {
-                    $fileContent = file_get_contents($model->document_content->tempName); // Save the content
-                    $encodedContent = base64_encode($fileContent);
-                    $model->document_content = $encodedContent;
-                }
+                $files = UploadedFile::getInstances($model, 'document_content'); // Handle multiple files
 
-                $model->created_date = date('Y-m-d H:i:s'); // Set the Modified date (created_date) to the current date and time
+                if (!empty($files)) {
+                    foreach ($files as $file) {
+                        $newRevisionInstance = new DocumentRevision();  // Create a new model instance for each file
+                        $newRevisionInstance->fk_document = $document->id;
 
-                if ($model->save()) {
-                    Yii::$app->session->setFlash('success', 'Revision created and saved successfully.');
+                        $fileContent = file_get_contents($file->tempName);
+                        $encodedContent = base64_encode($fileContent);
+                        $newRevisionInstance->document_content = $encodedContent;
+                        $newRevisionInstance->is_informed = $model->is_informed;
+                        $newRevisionInstance->is_visible = $model->is_visible;
+                        $newRevisionInstance->fk_affiliation = $model->fk_affiliation;
+                        $newRevisionInstance->version = $model->version;
+                        $newRevisionInstance->tags = $model->tags;
+                        $newRevisionInstance->comment = $model->comment;
+                        $newRevisionInstance->created_date = date('Y-m-d H:i:s');
 
+                        if (!$newRevisionInstance->save()) {
+                            Yii::$app->session->setFlash('error', 'Error saving the document information to the database.');
+                            return $this->redirect(['get-contents-admin', 'cguid' => DocumentManagerHelper::getCGuid()]);
+                        }
+                    }
+                    Yii::$app->session->setFlash('success', 'Revisions created and saved successfully.');
                     return $this->redirect(['get-contents-admin', 'cguid' => DocumentManagerHelper::getCGuid()]);
                 } else {
-                    Yii::$app->session->setFlash('error', 'Error saving the document information to the database.');
+                    Yii::$app->session->setFlash('error', 'No files uploaded.');
                 }
             }
         } else {
@@ -208,98 +231,41 @@ class BackendController extends \humhub\modules\content\components\ContentContai
     }
 
     /**
-     * Creates a new Document model.
+     * Creates a new Document, including its revisions and affiliations.
      * If creation is successful, the browser will be redirected to the 'backend/index' page.
      * @return string|\yii\web\Response
+     * @throws Exception if there is an error during the saving process.
      */
-
     public function actionCreateDocument()
     {
-        $model = new Document();
-        $folderModel = new Folder();
-        $revisionModel = new Revision();
         $hierarchyModel = new FolderHierarchy();
+        $folderModel = new Folder();
+        $model = new Document();
+        $revisionModel = new Revision();
 
         if ($this->request->isPost) {
-            if ($model->load($this->request->post())) {
-                // Load data from the form into $hierarchyModel
-                if ($hierarchyModel->load($this->request->post())) {
+            $files = UploadedFile::getInstances($revisionModel, 'document_content');
 
+            if (!empty($files)) {
+                $folderModel = $this->handleFolderCreation($hierarchyModel, $folderModel);
 
-                    if ($this->request->post('create-new-folder-checkbox')) {
-
-                        $folderModel = Folder::createFromHierarchy($hierarchyModel);
-
-                        // echo '<pre>';
-                        // print_r($hierarchyModel);
-                        // die;
-                        // echo '</pre>';
-                        if (empty($hierarchyModel->fk_folder)) {
-                            $folderModel->sub_level = $folderModel->fk_folder;
-                        } else {
-                            $folderModel->sub_level = Folder::findOne($folderModel->fk_folder)->sub_level;
-                        }
-
-                        if (!$folderModel->save()) {
-                            Yii::$app->session->setFlash('error', 'Failed to save new folder.');
-                        }
-
-                        $model->fk_folder = $folderModel->id;
-                    } else {
-                        $existingFolder = Folder::findOne($hierarchyModel->fk_folder);
-                        if ($existingFolder) {
-                            $model->fk_folder = $existingFolder->id;
-                        } else {
-                            Yii::$app->session->setFlash('error', 'Selected folder does not exist.');
-                        }
-                    }
-                }
-
-                $fileUpload = UploadedFile::getInstance($revisionModel, 'document_content');
-                $model->name = $fileUpload->baseName . '.' . $fileUpload->extension; //Extracts the name and extension of the uploaded file and saves it as the document name
-
-                $model->sub_level = $model->fk_folder ? Folder::findOne($model->fk_folder)->sub_level : $folderModel->sub_level; // Assigns the document sub_level column based on the folder sub_level value
-                $model->save();
-
-                // Handles and saves the document information related to the revision table
-                if ($revisionModel->load($this->request->post())) {
-                    $revisionModel->fk_document = $model->id;
-                    $revisionModel->document_content = $fileUpload;
-
-                    if ($revisionModel->document_content) {
-                        $fileContent = file_get_contents($revisionModel->document_content->tempName); // Save the content
-                        $encodedContent = base64_encode($fileContent);
-                        $revisionModel->document_content = $encodedContent;
-                    }
-                    $revisionModel->created_date = date('Y-m-d H:i:s');
-                    $revisionModel->save();
-
-                    // Handle the affiliations
-                    $model->documentAffiliations = $this->request->post('Document')['affiliations'];
-                    if (!empty($model->documentAffiliations)) {
-
-                        foreach ($model->documentAffiliations as $affiliationId) {
-                            // Create a new AffiliationDocument model and associate it
-                            $affiliationDocument = new AffiliationDocument();
-                            $affiliationDocument->fk_affiliation = $affiliationId;
-                            $affiliationDocument->fk_document = $model->id;
-
-                            if (!$affiliationDocument->save()) {
-                                Yii::$app->session->setFlash('error', 'Affiliation creation failed.');
-                            }
-                        }
-                    }
-                    Yii::$app->session->setFlash('success', 'Document saved successfully');
-
+                $transaction = Yii::$app->db->beginTransaction();
+                try {
+                    $this->saveDocumentsAndRevisions($files, $folderModel, $model, $revisionModel);
+                    $transaction->commit();
+                    Yii::$app->session->setFlash('success', 'All documents saved successfully');
                     return $this->redirect(['backend/index', 'cguid' => DocumentManagerHelper::getCGuid()]);
+                } catch (Exception $e) {
+                    $transaction->rollBack();
+                    Yii::$app->session->setFlash('error', $e->getMessage());
                 }
             } else {
-                Yii::$app->session->setFlash('error', 'Document creation failed.');
+                Yii::$app->session->setFlash('error', 'No files uploaded.');
             }
         } else {
             $model->loadDefaultValues();
         }
-        // DocumentNotification::instance()->from(Yii::$app->user->identity)->about($model)->sendBulk($users);
+
         return $this->render('/document/documentcreate', [
             'model' => $model,
             'folderModel' => $folderModel,
@@ -308,51 +274,129 @@ class BackendController extends \humhub\modules\content\components\ContentContai
         ]);
     }
 
-
-    public function actionSendNotification()
+    /**
+     * Creates a new folder based on the provided or user-defined hierarchy.
+     * @param FolderHierarchy $hierarchyModel The hierarchy model used for folder ordering.
+     * @param Folder $folderModel The folder model to be created or updated.
+     * @return Folder The folder model after creation or update.
+     */
+    private function handleFolderCreation($hierarchyModel, $folderModel)
     {
-
-        $models = Revision::find()
-            ->where(['is_visible' => 1])
-            ->where(['is_informed' => 1])->all();
-
-        $spaces = DocumentNotification::getEnabledSpaces();
-
-        foreach ($spaces as $space) {
-
-            $users = $space->getMembershipUser(Membership::STATUS_MEMBER)->all();
-            // $originator = Yii::$app->user->identity;
-
-            foreach ($models as $model) {
-
-                //  $notification = DocumentNotification::instance()->from($originator)->about($model);
-                //$notification = DocumentNotification::instance()->about($model);
-                $notification = new DocumentNotification();
-                //  $notification->payload([
-                //     'someValue' => 'test',
-                // ]);
-                $notification->about($model);
-                foreach ($users as $user) {
-                    $notification->send($user);
+        if ($hierarchyModel->load($this->request->post())) {
+            if ($this->request->post('create-new-folder-checkbox')) {
+                $folderModel = Folder::createFromHierarchy($hierarchyModel);
+                $folderModel->sub_level = empty($hierarchyModel->fk_folder) ? $folderModel->fk_folder : Folder::findOne($folderModel->fk_folder)->sub_level;
+                if (!$folderModel->save()) {
+                    Yii::$app->session->setFlash('error', 'Failed to save new folder.');
                 }
-                //$notification->sendBulk($users);
-                $model->is_visible = intval($model->is_visible);
-                $model->is_informed = intval(0);
-
-                $model->save();
+            } else {
+                $folderModel = $this->getExistingFolder($hierarchyModel->fk_folder);
             }
-            Yii::$app->session->setFlash('success', 'Notifications queued successfully.');
         }
-        return $this->redirect(['index', 'cguid' => DocumentManagerHelper::getCGuid()]);
+        return $folderModel;
     }
 
-
-
-
+    /**
+     * Retrieves an existing folder by its ID.
+     * @param int $folderId The ID of the folder to retrieve.
+     * @throws Exception if the folder does not exist.
+     * @return Folder|null The existing folder if found, null otherwise.
+     */
+    private function getExistingFolder($folderId)
+    {
+        $existingFolder = Folder::findOne($folderId);
+        if ($existingFolder) {
+            return $existingFolder;
+        } else {
+            Yii::$app->session->setFlash('error', 'Selected folder does not exist.');
+            return null;
+        }
+    }
 
     /**
-     * @param $id
-     * @return string|Response|\yii\web\Response
+     * Saves documents and their revisions based on the provided files and models.
+     * @param UploadedFile[] $files The uploaded files to be saved as document_content.
+     * @param Folder $folderModel The folder model where the documents will be saved.
+     * @param Document $documentModel The document model to be saved.
+     * @param Revision $revisionModel The revision model to be saved.
+     * @throws Exception if there is an error during the saving process.
+     */
+    private function saveDocumentsAndRevisions($files, $folderModel, $documentModel, $revisionModel)
+    {
+        foreach ($files as $file) {
+            $documentModel = new Document();
+            $revisionModel = new Revision();
+
+            $this->loadDocumentData($documentModel, $file, $folderModel);
+            if ($documentModel->save()) {
+                $this->loadRevisionData($revisionModel, $file, $documentModel);
+                if (!$revisionModel->save()) {
+                    throw new Exception('Failed to save document revision.');
+                }
+                $this->handleDocumentAffiliations($documentModel);
+            } else {
+                throw new Exception('Failed to save document.');
+            }
+        }
+    }
+
+    /**
+     * Assigns the document name from an uploaded file and also loads other document attributes into the document model.
+     *
+     * @param Document $documentModel The document model to load data into.
+     * @param UploadedFile $file The uploaded file containing the document data.
+     * @param Folder $folderModel The folder model associated with the document.
+     */
+    private function loadDocumentData($documentModel, $file, $folderModel)
+    {
+        $documentModel->name = $file->baseName . '.' . $file->extension;
+        $documentModel->fk_folder = $folderModel->id;
+        $documentModel->tags = Yii::$app->request->post('Document')['tags'];
+        $documentModel->sub_level = $folderModel->sub_level;
+    }
+
+    /**
+     * Loads revision data from the form into the revision model.
+     * @param Revision $revisionModel The revision model to load data into.
+     * @param UploadedFile $file The uploaded file containing the revision data.
+     * @param Document $documentModel The document model associated with the revision.
+     */
+    private function loadRevisionData($revisionModel, $file, $documentModel)
+    {
+        $revisionModel->fk_document = $documentModel->id;
+        $revisionModel->document_content = base64_encode(file_get_contents($file->tempName));
+        $revisionModel->version = Yii::$app->request->post('Revision')['version'];
+        $revisionModel->is_visible = Yii::$app->request->post('Revision')['is_visible'];
+        $revisionModel->is_informed = Yii::$app->request->post('Revision')['is_informed'];
+        $revisionModel->comment = Yii::$app->request->post('Revision')['comment'];
+        $revisionModel->created_date = date('Y-m-d H:i:s');
+    }
+
+    /**
+     * Handles the affiliations for a document model.
+     * @param Document $documentModel The document model to assign the affiliations for.
+     * @throws Exception if there is an error during the affiliation process.
+     */
+    private function handleDocumentAffiliations($documentModel)
+    {
+        $documentModel->documentAffiliations = $this->request->post('Document')['affiliations'];
+        if (!empty($documentModel->documentAffiliations)) {
+            foreach ($documentModel->documentAffiliations as $affiliationId) {
+                $affiliationDocument = new AffiliationDocument();
+                $affiliationDocument->fk_affiliation = $affiliationId;
+                $affiliationDocument->fk_document = $documentModel->id;
+                if (!$affiliationDocument->save()) {
+                    Yii::$app->session->setFlash('error', 'Affiliation creation failed.');
+                }
+            }
+        }
+    }
+
+    /**
+     * Updates a specific record based on the provided ID.
+     *
+     * @param int $id The ID of the record to be updated.
+     * @return string|Response The rendering result or the redirection response after the update.
      * @throws NotFoundHttpException
      * @throws \Throwable
      * @throws StaleObjectException
@@ -369,30 +413,13 @@ class BackendController extends \humhub\modules\content\components\ContentContai
 
         if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
             if ($this->request->isPost && $documentModel->load($this->request->post()) && $documentModel->save()) {
-                $documentModel->documentAffiliations = $this->request->post('Document')['affiliations'];
-
                 $existingAffiliationDocument = AffiliationDocument::find()->where(['fk_document' => $model->fk_document])->all();
-                if (!empty($documentModel->documentAffiliations)) {
 
-
-                    foreach ($documentModel->documentAffiliations as $affiliationId) {
-
-                        // Associate the affiliation with the revision
-                        $affiliationDocument = new AffiliationDocument();
-
-                        $affiliationDocument->fk_affiliation = $affiliationId;
-                        $affiliationDocument->fk_document = $model->fk_document;
-
-                        if (!$affiliationDocument->save()) {
-                            Yii::$app->session->setFlash('error', 'Error saving affiliation information.');
-                        }
-                    }
-                }
-
+                if ($documentModel instanceof Document) {
+                    $this->handleDocumentAffiliations($documentModel);
+                } 
                 foreach ($existingAffiliationDocument as $affiliation) {
-
-                    // Associate the affiliation with the revision
-                    if (!in_array($affiliation->fk_affiliation, (array) $documentModel->documentAffiliations)) {
+                    if (!in_array($affiliation->id, (array) $documentModel->documentAffiliations)) {
                         $affiliation->delete();
                     }
                 }
@@ -401,7 +428,6 @@ class BackendController extends \humhub\modules\content\components\ContentContai
 
             return $this->redirect(['get-contents-admin', 'cguid' => DocumentManagerHelper::getCGuid()]);
         }
-
         return $this->render('/revision/revisionupdate', [
             'model' => $model,
             'documentModel' => $documentModel,
@@ -410,28 +436,19 @@ class BackendController extends \humhub\modules\content\components\ContentContai
 
 
     /**
-     * Deletes selected object based on its specific model.
-     * If deletion is successful, the browser will be redirected to the 'index' page.
-     * @param int $id ID
-     * @return \yii\web\Response
-     * @throws NotFoundHttpException if the model cannot be found
+     * Creates a trigger for instant notification when needed
+     * @return Response The response object that redirects to the index page.
      */
-    // public function actionDelete($id)
-    // {
-    //     $model = Revision::findOne($id);
-    //     if ($model !== null) {
-    //         $model->delete();
-    //         Yii::$app->session->setFlash('success', 'Document revision deleted successfully.');
-    //     }
-    //     return $this->redirect(['backend/index']);
-    // }
-
-
-
+    public function actionSendNotification()
+    {
+        EventsAdmin::sendNotifications();
+        Yii::$app->session->setFlash('success', 'Notifications sent successfully.');
+        return $this->redirect(['index', 'cguid' => DocumentManagerHelper::getCGuid()]);
+    }
 
     /**
-     * Deletes an existing Document model.
-     * If deletion is successful, the browser will be redirected to the 'index' page.
+     * Deletes selected object based on its specific model.
+     * If deletion is successful, the browser will be redirected to the specified page.
      * @param int $id ID
      * @return \yii\web\Response
      * @throws NotFoundHttpException if the model cannot be found
@@ -444,17 +461,52 @@ class BackendController extends \humhub\modules\content\components\ContentContai
         if ($model !== null) {
             if ($model instanceof Folder) {
 
+                $parentFolder = $model->fk_folder;
+                $folder_document = Document::find()->where(['fk_folder' => $model->id])->all();
+
+                foreach ($folder_document as $document) {
+                    $doc_revision = $document->checkRevision();
+
+                    if (empty($doc_revision)) {
+
+                        foreach ($document->affiliationDocuments as $affiliation) {
+                            $affiliation->delete();
+                        }
+                        $document->delete();
+
+                    } else {
+                        Yii::$app->session->setFlash('error', 'Cannot delete folder that is not empty');
+                        return $this->redirect(['backend/get-contents-admin', 'fk_folder' => $parentFolder, 'cguid' => DocumentManagerHelper::getCGuid()]);
+                    }
+                }
                 $model->delete();
-                return $this->redirect(['backend/get-contents-admin', 'fk_folder' => $model->fk_folder, 'cguid' => DocumentManagerHelper::getCGuid()]);
+                return $this->redirect(['backend/get-contents-admin', 'fk_folder' => $parentFolder, 'cguid' => DocumentManagerHelper::getCGuid()]);
+
             } elseif ($model instanceof Revision) {
+
+                $temp_document = $model->document;
+                $parentFolder = $model->document->fk_folder;
                 $model->delete();
-                return $this->redirect(['backend/get-contents-admin', 'fk_folder' => $model->document->fk_folder, 'cguid' => DocumentManagerHelper::getCGuid()]);
+                $doc_revision = $temp_document->checkRevision();
+
+                if (empty($doc_revision)) {
+
+                    foreach ($temp_document->affiliationDocuments as $affiliation) {
+                        $affiliation->delete();
+                    }
+                    $temp_document->delete();
+                }
+
+
+                return $this->redirect(['backend/get-contents-admin', 'fk_folder' => $parentFolder, 'cguid' => DocumentManagerHelper::getCGuid()]);
             }
         } else {
             // Handle the case where the record is not found
             throw new NotFoundHttpException('The requested page does not exist.');
         }
+        return $this->redirect(['backend/get-contents-admin', 'cguid' => DocumentManagerHelper::getCGuid()]);
     }
+
 
     /**
      * Finds the specific model based on its primary key value.
@@ -464,7 +516,6 @@ class BackendController extends \humhub\modules\content\components\ContentContai
      * @return Folder the loaded model
      * @throws NotFoundHttpException if the model cannot be found
      */
-
     protected function findModel($id)
     {
         $model = DocumentRevision::findOne($id);

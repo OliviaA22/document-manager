@@ -35,9 +35,10 @@ class Revision extends ActiveRecordExternal
     {
         return [
             [['fk_document', 'is_visible', 'is_informed'], 'integer'],
-            [['document_content', 'comment'], 'string'],
+            [['comment'], 'string'],
             [['version', 'is_visible', 'is_informed'], 'required'],
             [['created_date'], 'safe'],
+            [['document_content'], 'file', 'skipOnEmpty' => true, 'maxFiles' => 20],
             [['version'], 'string', 'max' => 50],
             [['fk_document'], 'exist', 'skipOnError' => true, 'targetClass' => Document::class, 'targetAttribute' => ['fk_document' => 'id']],
         ];

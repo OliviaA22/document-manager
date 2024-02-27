@@ -1,18 +1,12 @@
 <?php
 
 use humhub\modules\documentmanager\helpers\DocumentManagerHelper;
-use yii\grid\ActionColumn;
 use yii\helpers\Html;
-use yii\helpers\Url;
-use yii\widgets\ActiveForm;
 use humhub\modules\documentmanager\models\DocumentRevision;
-use humhub\modules\documentmanager\models\Document;
-use humhub\modules\documentmanager\models\Revision;
 use humhub\modules\documentmanager\models\Folder;
 
 use yii\grid\GridView;
 use humhub\modules\documentmanager\assets\DocumentManagerAsset;
-use yii\widgets\Breadcrumbs;
 
 DocumentManagerAsset::register($this);
 
@@ -36,7 +30,6 @@ $path = Folder::setBreadcrumbsPath(false);
                 [
                     'attribute' => 'name',
                     'format' => 'raw',
-                    'contentOptions' => ['class' => 'truncate'],
                     'value' => function ($model) {
                                 $name = '';
                                 if ($model instanceof Folder) {
@@ -44,8 +37,6 @@ $path = Folder::setBreadcrumbsPath(false);
                                     $name .= Html::a($model->name, ['get-contents', 'cguid' => DocumentManagerHelper::getCGuid(), 'fk_folder' => $model['id']], ['class' => 'folder-link', 'data-folder-id' => $model['id'], 'style' => 'text-decoration: none;']);
 
                                 } elseif ($model instanceof DocumentRevision) {
-                                    // $truncatedName = strlen($model->name) > 20 ? substr($model->name, 0, 20) . '...' : $model->name;
-                                    // $name = Html::a($truncatedName,
                                     $name = '<i class="fa fa-file-o"></i>  ';
                                     $name .= Html::a($model->name, ['revision/download', 'cguid' => DocumentManagerHelper::getCGuid(), 'id' => $model['id'], 'version' => $model['version']], ['download' => true, 'style' => 'text-decoration: none;']);
                                     $name .= '  ' . Html::tag('i', '', [
