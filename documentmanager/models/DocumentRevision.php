@@ -2,6 +2,7 @@
 
 namespace humhub\modules\documentmanager\models;
 
+use humhub\modules\documentmanager\notifications\DocumentNotification;
 use Yii;
 
 /**
@@ -46,6 +47,12 @@ class DocumentRevision extends Revision
         ];
     }
 
+    /**
+     * Retrieves all visible revisions of documents within a specified folder.
+     * 
+     * @param int|null $fk_folder 
+     * @return array An array of visible revisions.
+     */
     public static function getVisibleRevisions($fk_folder = null)
     {
         return self::find()
@@ -55,6 +62,13 @@ class DocumentRevision extends Revision
             ->where(['fk_folder' => $fk_folder])
             ->all();
     }
+
+    /**
+     * Fetches all revisions of documents within a specified folder, including affiliation names.
+     * 
+     * @param int|null $fk_folder 
+     * @return array
+     */
     public static function getAllRevisions($fk_folder = null)
     {
         return self::find()
@@ -66,7 +80,12 @@ class DocumentRevision extends Revision
             ->all();
     }
 
-
+    /**
+     * Creates a query for searching revisions based on various criteria.
+     * 
+     * @param DocumentRevision $documentrevision The model instance containing search parameters.
+     * @return \yii\db\ActiveQuery The query object for further refinement.
+     */
     public function getSearchRevisions($documentrevision)
     {
 
@@ -75,26 +94,18 @@ class DocumentRevision extends Revision
             ->joinWith('document')
             ->leftJoin('affiliation_document', 'affiliation_document.fk_document = document.id')
             ->leftJoin('affiliation', 'affiliation_document.fk_affiliation = affiliation.id');
-   
-            if ($documentrevision->search) {
-                $query->andWhere(['or', ['like', 'document.name', $documentrevision->search], ['like', 'document.tags', $documentrevision->search]]);
-            }
 
-            if ($documentrevision->fk_affiliation) {
+        if ($documentrevision->search) {
+            $query->andWhere(['or', ['like', 'document.name', $documentrevision->search], ['like', 'document.tags', $documentrevision->search]]);
+        }
 
-                $query->andWhere(['affiliation.id'=> $documentrevision->fk_affiliation]);
-            }
+        if ($documentrevision->fk_affiliation) {
 
-        // echo "<pre>";
-        // print_r($query->createCommand()->getRawSql());
-        // echo "</pre>";
-        // die;
+            $query->andWhere(['affiliation.id' => $documentrevision->fk_affiliation]);
+        }
 
-        return $query->all();
+        return $query;
     }
-
-
-
 
 
     /**
@@ -108,13 +119,3 @@ class DocumentRevision extends Revision
     }
 }
 
-
-/*
-$POST = [
-    "val1" = "test",
-    "val2" = [
-        0 => "asfgjdn",
-    ]
-]
-
-*/

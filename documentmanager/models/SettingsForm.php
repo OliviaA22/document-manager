@@ -30,9 +30,9 @@ class SettingsForm extends Model
     }
 
 
- /**
+    /**
      * @return \yii\base\Module
-  */
+     */
     public function getModule()
     {
         return Yii::$app->getModule('documentmanager');
@@ -59,15 +59,22 @@ class SettingsForm extends Model
         ];
     }
 
-
+    /**
+     * Loads settings related to the display of events.
+     */
     public function loadBySettings()
     {
         $this->displayEvents = $this->getSettings()->get('displayEvents', false);
-        
+
         $this->displayEventsAdmin = $this->getSettings()->get('displayEventsAdmin', false);
     }
 
 
+    /**
+     * Saves the current settings of the module event.
+     * 
+     * @return bool Returns true if the settings are saved successfully, false otherwise.
+     */
     public function save(): bool
     {
         if (!$this->validate()) {
@@ -79,6 +86,11 @@ class SettingsForm extends Model
         return true;
     }
 
+    /**
+     * Retrieves the settings manager for the content container.
+     * 
+     * @return ContentContainerSettingsManager The settings manager instance.
+     */
     private function getSettings(): ContentContainerSettingsManager
     {
         return $this->getModule()->settings->contentContainer($this->contentContainer);

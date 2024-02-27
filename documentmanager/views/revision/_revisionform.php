@@ -4,12 +4,7 @@ use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use yii\helpers\ArrayHelper;
 
-use humhub\modules\documentmanager\assets\DocumentManagerAsset;
-use humhub\modules\documentmanager\models\DocumentRevision;
-use humhub\modules\documentmanager\models\Document;
 use humhub\modules\documentmanager\models\Affiliation;
-use yii\helpers\Url;
-
 
 /** @var yii\web\View $this */
 /** @var humhub\modules\documentmanager\models\DocumentRevision $model */
@@ -27,7 +22,7 @@ use yii\helpers\Url;
     
     <?= $form->field($model, 'fk_document')->hiddenInput()->label(false) ?>
 
-    <?= $form->field($model, 'document_content')->fileInput() ?>
+    <?= $form->field($model, 'document_content[]')->fileInput(['multiple' => true]) ?>
 
     <?= $form->field($model, 'fk_affiliation')->checkboxList(
         ArrayHelper::map(Affiliation::find()->all(), 'id', 'name')

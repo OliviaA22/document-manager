@@ -2,10 +2,14 @@
 
 namespace humhub\modules\documentmanager\models\search;
 
+use humhub\modules\content\components\ContentContainerSettingsManager;
 use yii\base\Model;
 use yii\data\ActiveDataProvider;
 use humhub\modules\documentmanager\models\DocumentRevision;
-
+use humhub\modules\documentmanager\models\SettingsForm;
+use humhub\modules\documentmanager\notifications\DocumentNotification;
+use humhub\modules\user\models\User;
+use Yii;
 use yii\data\ArrayDataProvider;
 
 /**
@@ -14,10 +18,12 @@ use yii\data\ArrayDataProvider;
 class DocumentRevisionSearch extends DocumentRevision
 {
 
-     public $search;
+    public $search;
     public $fk_affiliation;
     public $tags;
     public $name;
+
+
 
     /**
      * {@inheritdoc}
@@ -27,7 +33,7 @@ class DocumentRevisionSearch extends DocumentRevision
         return [
             [['id', 'fk_document', 'is_visible', 'is_informed'], 'integer'],
 
-            [['document_content', 'name', 'tags','search', 'version','created_date', 'fk_affiliation'], 'safe'],
+            [['document_content', 'name', 'tags', 'search', 'version', 'created_date', 'fk_affiliation'], 'safe'],
         ];
     }
 
@@ -62,38 +68,18 @@ class DocumentRevisionSearch extends DocumentRevision
             // $query->where('0=1');
 
 
-            // echo "<pre>";
-            // print_r($this->getErrors());
-            // echo "</pre>";
-            // die;
-
             return $dataProvider;
         }
-
-
-        $revisions = DocumentRevision::getSearchRevisions($this);
-
-            // echo "<pre>";
-            // print_r($revisions);
-            // echo "</pre>";
-            // die;        
+        $revisions = DocumentRevision::getSearchRevisions($this)->all();     
 
         $dataProvider = new ArrayDataProvider([
             'allModels' => $revisions,
             'pagination' => false,
         ]);
 
-        // $query->andFilterWhere(['or', ['like', 'name', $this->search], ['like', 'tags', $this->search]]);
-        
-        // $query->andFilterWhere(['fk_affiliation' => $this->fk_affiliation]);
-
-
-        // $query->andFilterWhere(['like', 'tags', $this->tags])
-        //     ->andFilterWhere(['like', 'fk_affiliation', $this->fk_affiliation]);
-        
-
-        
-
         return $dataProvider;
     }
+
+
+
 }

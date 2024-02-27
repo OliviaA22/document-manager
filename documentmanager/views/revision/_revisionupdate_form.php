@@ -4,11 +4,7 @@ use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use yii\helpers\ArrayHelper;
 
-use humhub\modules\documentmanager\models\DocumentRevision;
-use humhub\modules\documentmanager\models\Document;
 use humhub\modules\documentmanager\models\Affiliation;
-use yii\helpers\Url;
-
 
 /** @var yii\web\View $this */
 /** @var humhub\modules\documentmanager\models\DocumentRevision $model */
@@ -49,7 +45,7 @@ use yii\helpers\Url;
     <?= $form->field($model, 'comment')->textInput(['maxlength' => true]) ?>
 
     <div class="form-group">
-        <?= Html::submitButton('Save', ['class' => 'btn btn-success']) ?>
+        <?= Html::submitButton('Save', ['class' => 'btn btn-success pull-right']) ?>
     </div>
 
     <?php ActiveForm::end(); ?>

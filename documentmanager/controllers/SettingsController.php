@@ -5,9 +5,6 @@ namespace humhub\modules\documentmanager\controllers;
 
 use humhub\modules\documentmanager\models\SettingsForm;
 use humhub\modules\content\components\ContentContainerController;
-use humhub\modules\admin\components\Controller;
-
-use yii\helpers\Url;
 use Yii;
 
 
@@ -33,8 +30,7 @@ class SettingsController extends ContentContainerController
             : ['frontend/index', 'cguid' => Yii::$app->getRequest()->getQueryParam('cguid')];
             
             return $this->redirect($redirectRoute);         
-        }
-        // Determine which view to render based on the settings          
+        }         
         return $this->render('_form', ['model' => $form]);
     }
 }

@@ -4,17 +4,20 @@ namespace humhub\modules\documentmanager\notifications;
 
 
 use humhub\modules\content\models\ContentContainerModuleState;
+use humhub\modules\documentmanager\EventsAdmin;
 use humhub\modules\documentmanager\helpers\DocumentManagerHelper;
 use humhub\modules\documentmanager\models\Document;
 use humhub\modules\documentmanager\models\DocumentRevision;
 use humhub\modules\documentmanager\models\Folder;
 use humhub\modules\documentmanager\models\SettingsForm;
+use humhub\modules\documentmanager\jobs\SendCustomBulkNotification;
 
 use humhub\modules\notification\components\BaseNotification;
 use humhub\modules\notification\models\Notification;
 
 use humhub\modules\space\models\Membership;
 use humhub\modules\space\models\Space;
+use humhub\modules\user\components\ActiveQueryUser;
 use humhub\modules\user\models\User;
 
 /** @var $this yii\web\View 
@@ -23,8 +26,10 @@ use humhub\modules\user\models\User;
 */
 
 use Yii;
+use yii\base\InvalidConfigException;
 use yii\helpers\Html;
 use yii\helpers\Url;
+use yii\web\NotFoundHttpException;
 
 class DocumentNotification extends BaseNotification
 {
@@ -36,24 +41,9 @@ class DocumentNotification extends BaseNotification
     public $requireOriginator = false;
 
 
-
-    // public function html()
-    // {
-    //     return Yii::t('DocumentmanagerModule.base', "           A new document has been uploaded. ");
-    // }
-
-    // public function html()
-    // {
-    //     $doc_name = Document::find()
-    //     ->where(['id' => $this->source->fk_document])->one()->name;
-
-    //     return Yii::t('DocumentmanagerModule.notifications', "%someUser% uploaded a new document %someDocument%, <strong>version:</strong>%someVersion% . ", [
-    //         '%someUser%' => '<strong>' . Html::encode($this->originator->displayName) . '</strong>',
-    //         '%someDocument%' => '<strong>' . Html::encode($doc_name) . '</strong>',
-    //         '%someVersion%' => '<strong>' . Html::encode($this->source->version) . '</strong>',
-    //     ]);
-    // }
-
+    /**
+     * {@inheritDoc}
+     */
     public function html()
     {
         $doc_name = Document::find()
@@ -66,6 +56,11 @@ class DocumentNotification extends BaseNotification
     }
 
 
+/**
+ * Checks if the frontend is enabled for a given event.
+ * @param mixed $event The event to check for if the frontend event is enabled.
+ * @return bool Returns true if the frontend is enabled, false otherwise.
+ */
     public static function isFrontendEnabled($event)
     {
 
@@ -77,11 +72,13 @@ class DocumentNotification extends BaseNotification
 
         }
         return false;
-
-
-
     }
 
+    /**
+ * Retrieves a list of spaces where the 'documentmanager' module is enabled.
+ *
+ * @return Space[] An array of Space objects that have the 'documentmanager' module enabled.
+ */
     public static function getEnabledSpaces()
     {
         $enabledSpaces = [];
@@ -104,29 +101,62 @@ class DocumentNotification extends BaseNotification
     }
 
 
+/**
+ * Generates a URL for the frontend index of the document manager based on the current record.
+ *
+ * @throws NotFoundHttpException if the space associated with the current record does not exist.
+ * @return string The URL to the document manager frontend index.
+ */
     public function getUrl()
     {
-        $spaces = DocumentNotification::getEnabledSpaces();
-        $fk_folder = Document::find()->where(['id' => $this->source->fk_document])->one()->fk_folder;
+        $space = Space::find()->where([
+            'id' => $this->record->space_id
+        ])->one();
 
-        foreach ($spaces as $space) {
-
-            $url = Url::to(['/documentmanager/frontend/index', 'cguid' => $space->guid, 'fk_folder' => $fk_folder]);
+        if ($space === null) {
+            throw new NotFoundHttpException('Space with id "' . $this->record->space_id . '" does not exist.');
         }
-        return $url;            
+        $fk_folder = Document::find()->where(['id' => $this->source->fk_document])->one()->fk_folder;
+        return Url::to(['/documentmanager/frontend/index', 'cguid' => $space->guid, 'fk_folder' => $fk_folder]);
     }
 
-    
-    // public function getUrl()
-    // {
+    /**
+     * {@inheritDoc}
+     * 
+     * Sends a bulk notification to a list of users or a user query.
+     * @param array|ActiveQueryUser $query The user list or ActiveQueryUser instance to send notifications to.
+     * @throws InvalidConfigException if no moduleId is provided.
+     */
+    public function sendBulk($query)
+    {
+        if (empty($this->moduleId)) {
+            throw new InvalidConfigException('No moduleId given for "' . get_class($this) . '"');
+        }
 
-    //     $spaces = DocumentNotification::getEnabledSpaces();
-    //     $fk_folder = Document::find()->where(['id' => $this->source->fk_document])->one()->fk_folder;
-        
-    //     foreach ($spaces as $space) {
-    //         return Url::to(['/documentmanager/frontend/index', 'cguid' => $space->guid, 'fk_folder' => $fk_folder]);
-    //     }
-    // }
+        if (!$query instanceof ActiveQueryUser) {
+            /** @var array $query */
+            Yii::debug('BaseNotification::sendBulk - pass ActiveQueryUser instead of array!', 'notification');
+
+            // Migrate given array to ActiveQueryUser
+            $userIds = EventsAdmin::getUserIds($query);
+            $query = EventsAdmin::getUserQuery($userIds);
+
+        }
+        Yii::$app->queue->push(new SendCustomBulkNotification(['notification' => $this, 'query' => $query, 'space_id' => $this->record->space_id]));
+    }
 
 
+    /**
+     * {@inheritDoc}
+     * 
+     *Retrieves the space ID associated with the current record.
+     * @return int|null The space ID if available, null otherwise.
+     */
+    public function getSpaceId()
+    {
+        if ($this->record) {
+            return $this->record->space_id;
+        }
+        return null;
+    }
 }

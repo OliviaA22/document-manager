@@ -3,12 +3,7 @@
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use yii\helpers\ArrayHelper;
-
-
 use humhub\modules\documentmanager\models\FolderHierarchy;
-use humhub\modules\documentmanager\models\Folder;
-use humhub\modules\documentmanager\models\Revision;
-use humhub\modules\documentmanager\models\Document;
 use humhub\modules\documentmanager\models\Affiliation;
 
 use humhub\modules\documentmanager\assets\DocumentManagerAsset;
@@ -45,7 +40,7 @@ DocumentManagerAsset::register($this);
 
     <?= $form->field($hierarchyModel, 'name')->textInput(['maxlength' => true, 'id' => 'new-folder-fields', 'disabled' => true]) ?>
 
-    <?= $form->field($revisionModel, 'document_content')->fileInput() ?>
+    <?= $form->field($revisionModel, 'document_content[]')->fileInput(['multiple' => true]) ?>
 
     <?= $form->field($model, 'tags')->textInput(['maxlength' => true]) ?>
 

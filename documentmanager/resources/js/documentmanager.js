@@ -4,12 +4,18 @@ humhub.module("documentmanager", function (module, require, $) {
   var event = require("event");
   // Your module logic and functionality go here
   event.on("humhub:ready", function () {
-    
     $(".documentmanager-folder-updater").click(function (e) {
       e.preventDefault();
 
       $(".fa-folder").removeClass("fa-folder-open");
       $(this).parent().find(".fa-folder").first().addClass("fa-folder-open");
+
+      $(this)
+        .parent()
+        .find("i.collapse-icon")
+        .first()
+        .toggleClass("fa-chevron-right fa-chevron-down");
+      $(this).next("ul.collapse").toggleClass("in");
 
       var newUrl = $(this).attr("href");
       $("#documentmanager-iframe").attr("src", newUrl);
@@ -46,9 +52,6 @@ humhub.module("documentmanager", function (module, require, $) {
 
     setTimeout(function () {
       $("#flash-message").fadeOut("slow");
-    }, 1000);
-
-
+    }, 3000);
   });
-
 });

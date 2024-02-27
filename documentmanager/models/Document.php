@@ -64,6 +64,30 @@ class Document extends ActiveRecordExternal
     }
 
     /**
+     * Retrieves all visible document revisions for search functionality .
+     * 
+     * @return DocumentRevision[] An array of DocumentRevision models that are visible.
+     */
+    public function getVisibleRevisions()
+    {
+        $documentRevision = new DocumentRevision();
+        $revisions = $documentRevision->getSearchRevisions($this)
+            ->andWhere(['revision.is_visible' => 1])
+            ->all();
+        return $revisions;
+    }
+
+    /**
+     * Fetches all revisions associated with the current document.
+     * 
+     * @return Revision[]
+     */
+    public function checkRevision()
+    {
+        $revisions = Revision::find()->where(['fk_document' => $this->id])->all();
+        return $revisions;
+    }
+    /**
      * Gets query for [[AffiliationDocuments]].
      *
      * @return \yii\db\ActiveQuery
@@ -73,7 +97,7 @@ class Document extends ActiveRecordExternal
         return $this->hasMany(AffiliationDocument::class, ['fk_document' => 'id']);
     }
 
-        /**
+    /**
      * Gets query for [[Affiliations]].
      *
      * @return \yii\db\ActiveQuery
