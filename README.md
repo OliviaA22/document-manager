@@ -1,6 +1,6 @@
 # Project Name: Document Manager
 
-## Project status: 90% Completed
+## Project status: Completed
 
 ![Module-logo](https://github.com/OliviaA22/document-manager/assets/94966149/326f5ed8-1624-4b59-b2ba-5a1daebd5b9d)
 
