@@ -1,0 +1,18 @@
+{
+    "id": "documentmanager",
+    "name": "Document Manager",
+    "description": "Manage Documents and provide search functionality.",
+    "keywords": [
+        "document",
+        "documents",
+        "search",
+        "folder",
+        "folders",
+        "revision",
+        "revisions"
+    ],
+    "version": "1.1.0",
+    "humhub": {
+        "minVersion": "1.1"
+    }
+}

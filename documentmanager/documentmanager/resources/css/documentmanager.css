@@ -1,0 +1,117 @@
+.table-bordered > tbody > tr > td,
+.table-bordered > tfoot > tr > td {
+  border: none;
+}
+.table > tbody > tr > td,
+.table > tfoot > tr > td {
+  border-top: 1px solid #ddd;
+}
+
+.table-bordered {
+  overflow: initial;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.summary {
+  margin-left: 10px;
+}
+.grid-view table thead tr th:first-of-type,
+.table > tbody > tr > td,
+.table > thead > tr > th {
+  padding: 10px 10px 10px 10px;
+}
+
+.breadcrumb,
+.main-frame,
+.frame-box {
+  background-color: #fff;
+}
+
+.folder-view {
+  list-style-type: none;
+  margin-top: 15px;
+}
+
+ul,
+.document-search,
+.revision-form
+ {
+  padding-left: 12px;
+}
+
+.folder-view li {
+  list-style-type: none;
+  padding: 3px 0 3px 2px;
+}
+
+.frame-container::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+.main-frame {
+  padding-left: 0;
+}
+
+.frame-box {
+  padding-right: 0;
+  overflow: hidden;
+}
+
+#documentmanager-iframe {
+  position: relative;
+  border: 0;
+  width: 101%;
+  height: 650px;
+  overflow: auto;
+}
+
+.collapseIcon {
+  cursor: pointer;
+}
+
+.fa-chevron-down,
+.fa-chevron-right {
+  color: #6a6c6c;
+  font-size: x-small;
+}
+
+#flash-message {
+  width: fit-content;
+  padding: 5px;
+  margin: 0 auto;
+}
+
+.notify {
+  padding: 1px;
+  margin: 0 auto;
+}
+
+.add-new {
+  padding: 2px;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.explanatory-text {
+  padding: 15px;
+  font-weight: bold;
+}
+
+
+@media (min-width: 420px) {
+  .table-bordered td:nth-child(1) {
+    width: 35%;
+    max-width: 35%;
+  }
+}
+@media (min-width: 768px) {
+  .table-bordered td:nth-child(1) {
+    width: 46%;
+    max-width: 46%;
+  }
+}
+
