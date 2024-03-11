@@ -1,6 +1,4 @@
-# Olivias Einarbeitung
-
-## Project Name: Document Manager
+# Project Name: Document Manager
 
 ## Project status: Completed
 
@@ -41,7 +39,7 @@ Finding specific documents is made effortless with our integrated search functio
 
 ### Notification Feature
 
-Our module includes a robust notification system, powered by a scheduled CronJob. Notifications are queued and sent out at specified intervals, ensuring timely communication with users. For urgent matters, administrators have the option to trigger instant notifications, ensuring critical updates are promptly delivered.
+Our module includes a robust notification system, powered by a scheduled CronJob. Notifications are queued and sent out at specified intervals to ensure timely communication with users. In urgent situations, administrators have the option of triggering instant notifications, ensuring critical updates are promptly delivered.
 
 ## Technical Specifications
 
@@ -54,7 +52,7 @@ Our module includes a robust notification system, powered by a scheduled CronJob
 
 Screenshots and Video Demonstrations: Include visual aids to showcase the module's functionality and user experience.
 Installation and Configuration Instructions: Provide clear and concise steps for easy setup.
-Troubleshooting Guide: Address common issues and error handling procedures.
+Troubleshooting Guide: Address common issues and error-handling procedures.
 Future Enhancements: Outline potential improvements and planned updates.
 
 ## Seamless Integration
