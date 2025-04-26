@@ -11,7 +11,7 @@ It empowers users and administrators with seamless document management capabilit
 
 ## Key Functionalities
 
-- Efficient redirection to respective "revision/create" or "document/create" forms.
+- Efficient redirection to respective ("revision/create" or "document/create") forms.
 - Simplified revision creation using the "+" icon next to documents, enhancing user-friendliness.
 - Simultaneous folder and subfolder creation within the document creation process, boosting efficiency.
 - Streamlined document creation so that Admins can effortlessly create, read, update, and delete documents and folders.
