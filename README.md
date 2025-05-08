@@ -6,7 +6,7 @@
 
 ## Description
 
-This robust HumHub module Document Management, offers comprehensive functionality for managing documents efficiently within your HumHub instance. With a user-friendly interface and robust features, this module simplifies document organization and access for both users and administrators.
+This HumHub module Document Management, offers comprehensive functionality for managing documents efficiently within your HumHub instance. With a user-friendly interface and robust features, this module simplifies document organization and access for both users and administrators.
 It empowers users and administrators with seamless document management capabilities, offering user-friendly interfaces and advanced features tailored to various needs.
 
 ## Key Functionalities
